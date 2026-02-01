@@ -1,0 +1,98 @@
+# Práctica 5 - Azure DevOps Pipelines (estructura final / guía)
+#
+# Este fichero NO contiene la solución “copiable”.
+# Contiene la estructura final que deberías alcanzar tras completar los ejercicios,
+# con comentarios indicando qué debes implementar en cada punto.
+#
+# Tu pipeline real recomendado: azure-pipelines.yml (en la raíz del repo)
+
+# =========================
+# Ejercicio 2: triggers
+# =========================
+trigger:
+  branches:
+    include: [] # TODO (E2): develop/master
+
+pr:
+  branches:
+    include: [] # TODO (E2): PR hacia develop/master
+
+# =========================
+# Ejercicio 4: parámetros
+# =========================
+parameters:
+  # TODO (E4): RUN_CD / DEPLOY_ENV
+
+# =========================
+# Ejercicio 3: variables
+# =========================
+variables:
+  # TODO (E3): variable groups + variables
+  # - name: IMAGE_NAME
+  #   value: "scalian_training-java-hello-world:0.0.2"
+  # - name: APP_URL
+  #   value: "http://localhost:8084/hello"
+
+stages:
+  - stage: CI
+    displayName: "CI"
+    jobs:
+      - job: lint
+        displayName: "Lint (Makefile)"
+        pool:
+          vmImage: ubuntu-latest
+        # TODO (E5): contenedor Maven como agente
+        # container: maven:3.8.6-openjdk-11-slim
+        steps:
+          - checkout: self
+          - script: |
+              echo "TODO (E5): make lint"
+            displayName: "Lint (TODO)"
+
+      - job: test
+        displayName: "Test (Makefile)"
+        dependsOn: lint
+        pool:
+          vmImage: ubuntu-latest
+        # TODO (E5): contenedor Maven como agente
+        # container: maven:3.8.6-openjdk-11-slim
+        steps:
+          - checkout: self
+          - script: |
+              echo "TODO (E5): make test"
+            displayName: "Test (TODO)"
+
+      - job: build_image
+        displayName: "Build image"
+        dependsOn: test
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+          - script: |
+              echo "TODO (E6): docker build -t $(IMAGE_NAME) --build-arg VERSION=... -f devops/Dockerfile ."
+            displayName: "Docker build (TODO)"
+
+  - stage: CD
+    displayName: "CD"
+    dependsOn: CI
+    # TODO (E7): condición por rama + RUN_CD
+    condition: false
+    jobs:
+      - job: deploy
+        displayName: "Deploy (simulado) + E2E"
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+          - script: |
+              echo "TODO (E8/E9): docker compose up -d java_app"
+              echo "TODO (E8/E9): curl -fsS $(APP_URL)"
+            displayName: "CD steps (TODO)"
+          - script: |
+              echo "TODO (E8/E6.5): cleanup siempre"
+              echo "TODO: docker compose down --volumes || true"
+              echo "TODO: docker rmi $(IMAGE_NAME) || true"
+            displayName: "Cleanup (TODO)"
+            condition: always()
+
