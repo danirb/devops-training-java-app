@@ -1,154 +1,183 @@
 /*
-  Practica 2 - Jenkins CI/CD (solucion)
+  Práctica 2 - Jenkinsfile (estructura final / guía)
 
-  Objetivos:
-  - Ejecutar lint + tests unitarios dentro de un contenedor Docker (maven:3.8.6-openjdk-11-slim)
-    usando el Makefile del repositorio como lanzador de tareas.
-  - Construir la imagen Docker de la aplicacion (usando cache local)
-  - Ejecutar un flujo CD simple con docker compose: up -> e2e -> down --volumes
+  Este fichero NO contiene la solución “copiable”.
+  Contiene la estructura final que deberías alcanzar tras completar los ejercicios,
+  con comentarios indicando qué debes implementar en cada punto.
 
-  Notas:
-  - Este Jenkinsfile usa funciones auxiliares Groovy (runInDocker/composeUpTestDown).
-    Como siguiente paso, extrae estas funciones a una Jenkins Shared Library en el repo IaC
-    y sustituye las funciones locales por llamadas a la libreria.
+  Reglas del curso (ver Práctica 2):
+  - CI se ejecuta en cualquier rama.
+  - CD solo se ejecuta en develop/master y si el parámetro RUN_CD está activado.
 */
 
+// =========================
+// Ejercicio 4 (Groovy): función reutilizable
+// =========================
 def runInDocker(String image, Closure body) {
-  docker.image(image).inside {
-    body()
-  }
+  // TODO (E4): Ejecuta `body()` dentro del contenedor indicado usando Docker Pipeline:
+  // docker.image(image).inside { body() }
 }
 
+// =========================
+// Ejercicio 9 (opcional): mini “librería” para Compose
+// =========================
 def composeUpTestDown(Map args = [:]) {
-  String upCmd = args.get('up', 'docker compose up -d')
-  String testCmd = args.get('test', '')
-  String downCmd = args.get('down', 'docker compose down --volumes')
-
-  if (!testCmd?.trim()) {
-    error("composeUpTestDown requiere un comando 'test' no vacio")
-  }
-
-  try {
-    sh upCmd
-    sh testCmd
-  } finally {
-    sh downCmd
-  }
+  // TODO (E9): Implementa el flujo:
+  // 1) args.up
+  // 2) args.test
+  // 3) siempre ejecutar args.down (aunque falle)
 }
 
 pipeline {
   agent any
 
   options {
-    timestamps()
-    disableConcurrentBuilds()
+    // Opcional: timestamps() / disableConcurrentBuilds()
   }
 
+  // =========================
+  // Ejercicio 6.3 (parámetros)
+  // =========================
   parameters {
-    booleanParam(
-      name: 'ENABLE_REGISTRY_PUSH',
-      defaultValue: false,
-      description: 'Opcional (Practica 2): construir y hacer push de la imagen a un registry privado.'
-    )
+    // TODO (E6.3): Añade un booleanParam RUN_CD (default false) para habilitar CD.
+    // booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD (solo develop/master)')
   }
 
+  // =========================
+  // Ejercicio 6.4 (variables de entorno)
+  // =========================
   environment {
-    // Mantener el tag alineado con docker-compose.yml para que compose use la imagen local.
-    APP_IMAGE = "scalian_training-java-hello-world:0.0.2"
-    BUILD_ARG_VERSION = "0.0.2-SNAPSHOT"
-    // Opcional (Practica 2): URL del registry local (accesible desde Jenkins por alias de red).
-    REGISTRY = "local-registry:5000"
-    REGISTRY_CREDS_ID = "local-registry-creds"
-    // docker-compose.yml mapea 8084 -> 8080 para el servicio java_app.
-    APP_URL = "http://localhost:8084/hello"
+    // TODO (E6.4): Define variables reutilizables:
+    // - IMAGE_NAME (tag para docker build)
+    // - APP_URL (endpoint para e2e)
+    // - (opcional E7) REGISTRY y REGISTRY_CREDS_ID
+    // - (opcional E10) VERSION_JAR para cd.Dockerfile
   }
 
   stages {
-    stage('CI - Lint (Makefile)') {
+    // =========================
+    // Ejercicio 1 (estructura básica)
+    // =========================
+    stage('Info') {
+      steps {
+        // TODO (E1): imprime JOB_NAME y BUILD_NUMBER
+      }
+    }
+
+    // =========================
+    // Ejercicio 3 (lint/test con Makefile) + Ejercicio 4 (refactor con runInDocker)
+    // =========================
+    stage('CI - Lint') {
       steps {
         script {
-          runInDocker('maven:3.8.6-openjdk-11-slim') {
-            sh 'mvn -version'
-            sh 'make lint'
-          }
+          // TODO (E3/E4): Ejecuta `make lint` dentro de maven:3.8.6-openjdk-11-slim.
+          // runInDocker('maven:3.8.6-openjdk-11-slim') { sh 'make lint' }
         }
       }
     }
 
-    stage('CI - Unit tests (Makefile)') {
+    stage('CI - Test') {
       steps {
         script {
-          runInDocker('maven:3.8.6-openjdk-11-slim') {
-            sh 'mvn -version'
-            sh 'make test'
-          }
+          // TODO (E3/E4): Ejecuta `make test` dentro de maven:3.8.6-openjdk-11-slim.
+          // runInDocker('maven:3.8.6-openjdk-11-slim') { sh 'make test' }
         }
       }
     }
 
-    stage('CI - Build Docker image') {
+    // =========================
+    // Ejercicio 5 (docker build)
+    // =========================
+    stage('CI - Build image') {
       steps {
         script {
-          // Usa cache local (sin push). El build-arg VERSION lo usa el Dockerfile.
-          docker.build(env.APP_IMAGE, "--build-arg VERSION=${env.BUILD_ARG_VERSION} -f devops/Dockerfile .")
+          // TODO (E5): Construye la imagen Docker usando el Dockerfile del repo:
+          // docker.build(env.IMAGE_NAME, "--build-arg VERSION=... -f devops/Dockerfile .")
         }
       }
     }
 
-    stage('CI - Push image to private registry (optional)') {
+    // =========================
+    // Ejercicio 8 (opcional, Java): subir jar a Artifactory con curl (sin plugin)
+    // =========================
+    stage('CI - Upload jar (opcional)') {
       when {
-        expression { return params.ENABLE_REGISTRY_PUSH }
+        // TODO (E8): Ejecuta solo si añades un parámetro tipo ENABLE_ARTIFACTORY_UPLOAD
       }
       steps {
         script {
-          def remoteTag = "${env.REGISTRY}/devops-training-2025-java-app:${env.BUILD_NUMBER}"
-          sh "docker tag ${env.APP_IMAGE} ${remoteTag}"
-
-          docker.withRegistry("http://${env.REGISTRY}", env.REGISTRY_CREDS_ID) {
-            def img = docker.image(remoteTag)
-            img.push()
-          }
+          // TODO (E8): Usa withCredentials + curl para subir target/*.jar a Artifactory.
         }
       }
     }
 
-    stage('CD - Compose up + E2E + down') {
-      steps {
-        script {
-          // IMPORTANTE: Jenkins debe tener disponible `docker compose`.
-          //
-          // El docker-compose.yml del repo tambien contiene servicios de SonarQube; para esta practica solo arrancamos la app.
-          // Si mas adelante anades BBDD para la app, extiende el compose para incluirla.
-          composeUpTestDown(
-            up: 'docker compose up -d java_app',
-            test: "sleep 5 && curl -fsS ${env.APP_URL} || (docker compose logs && exit 1)",
-            down: 'docker compose down --volumes'
-          )
-        }
-      }
-    }
-
-    stage('CD - Build runtime image with cd.Dockerfile (optional)') {
+    // =========================
+    // Ejercicio 7 (opcional): push a registry privado
+    // =========================
+    stage('CI - Push image (opcional)') {
       when {
-        expression { return params.ENABLE_REGISTRY_PUSH }
+        // TODO (E7): Ejecuta solo si has añadido un parámetro tipo ENABLE_REGISTRY_PUSH
       }
       steps {
         script {
-          // The runtime image expects the jar to exist in ./target/.
-          // For this training, we assume CI already produced it in the same workspace.
-          docker.build(
-            "local/devops-training-2025-java-app-runtime:${env.BUILD_NUMBER}",
-            "--build-arg VERSION=1.0.4-SNAPSHOT -f devops/cd.Dockerfile ."
-          )
+          // TODO (E7): Taggea y pushea la imagen a local-registry:5000 usando credenciales Jenkins.
+        }
+      }
+    }
+
+    // =========================
+    // Ejercicio 6 (compose) + Ejercicio 6.1 (solo develop/master) + Ejercicio 6.3 (RUN_CD)
+    // =========================
+    stage('CD') {
+      when {
+        allOf {
+          anyOf {
+            branch 'develop'
+            branch 'master'
+          }
+          // TODO (E6.3): Solo ejecutar CD si RUN_CD es true
+        }
+      }
+      steps {
+        script {
+          // TODO (E6.2): Define DEPLOY_ENV (develop=DEV, master=PRO) y muestra logs.
+          // TODO (E6): docker compose up -> e2e curl -> docker compose down --volumes
+          // Recomendado: encapsular con composeUpTestDown(...) (E9).
+        }
+      }
+      post {
+        // =========================
+        // Ejercicio 6.5 (hooks post)
+        // =========================
+        always {
+          // TODO (E6.5): Limpieza garantizada
+        }
+        success {
+          // TODO (E6.5): SUCCESS
+        }
+        failure {
+          // TODO (E6.5): FAILURE + logs
+        }
+      }
+    }
+
+    // =========================
+    // Ejercicio 10 (opcional, Java): usar cd.Dockerfile en CD
+    // =========================
+    stage('CD - Build runtime image (opcional)') {
+      when {
+        // TODO (E10): Condición (por ejemplo, solo develop/master y RUN_CD true)
+      }
+      steps {
+        script {
+          // TODO (E10): docker build -f devops/cd.Dockerfile --build-arg VERSION=<version> .
         }
       }
     }
   }
 
   post {
-    always {
-      sh 'docker compose down --volumes || true'
-      cleanWs()
-    }
+    // Post global del pipeline (opcional)
   }
 }
+
