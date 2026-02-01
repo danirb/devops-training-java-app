@@ -1,0 +1,154 @@
+/*
+  Practica 2 - Jenkins CI/CD (solucion)
+
+  Objetivos:
+  - Ejecutar lint + tests unitarios dentro de un contenedor Docker (maven:3.8.6-openjdk-11-slim)
+    usando el Makefile del repositorio como lanzador de tareas.
+  - Construir la imagen Docker de la aplicacion (usando cache local)
+  - Ejecutar un flujo CD simple con docker compose: up -> e2e -> down --volumes
+
+  Notas:
+  - Este Jenkinsfile usa funciones auxiliares Groovy (runInDocker/composeUpTestDown).
+    Como siguiente paso, extrae estas funciones a una Jenkins Shared Library en el repo IaC
+    y sustituye las funciones locales por llamadas a la libreria.
+*/
+
+def runInDocker(String image, Closure body) {
+  docker.image(image).inside {
+    body()
+  }
+}
+
+def composeUpTestDown(Map args = [:]) {
+  String upCmd = args.get('up', 'docker compose up -d')
+  String testCmd = args.get('test', '')
+  String downCmd = args.get('down', 'docker compose down --volumes')
+
+  if (!testCmd?.trim()) {
+    error("composeUpTestDown requiere un comando 'test' no vacio")
+  }
+
+  try {
+    sh upCmd
+    sh testCmd
+  } finally {
+    sh downCmd
+  }
+}
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  parameters {
+    booleanParam(
+      name: 'ENABLE_REGISTRY_PUSH',
+      defaultValue: false,
+      description: 'Opcional (Practica 2): construir y hacer push de la imagen a un registry privado.'
+    )
+  }
+
+  environment {
+    // Mantener el tag alineado con docker-compose.yml para que compose use la imagen local.
+    APP_IMAGE = "scalian_training-java-hello-world:0.0.2"
+    BUILD_ARG_VERSION = "0.0.2-SNAPSHOT"
+    // Opcional (Practica 2): URL del registry local (accesible desde Jenkins por alias de red).
+    REGISTRY = "local-registry:5000"
+    REGISTRY_CREDS_ID = "local-registry-creds"
+    // docker-compose.yml mapea 8084 -> 8080 para el servicio java_app.
+    APP_URL = "http://localhost:8084/hello"
+  }
+
+  stages {
+    stage('CI - Lint (Makefile)') {
+      steps {
+        script {
+          runInDocker('maven:3.8.6-openjdk-11-slim') {
+            sh 'mvn -version'
+            sh 'make lint'
+          }
+        }
+      }
+    }
+
+    stage('CI - Unit tests (Makefile)') {
+      steps {
+        script {
+          runInDocker('maven:3.8.6-openjdk-11-slim') {
+            sh 'mvn -version'
+            sh 'make test'
+          }
+        }
+      }
+    }
+
+    stage('CI - Build Docker image') {
+      steps {
+        script {
+          // Usa cache local (sin push). El build-arg VERSION lo usa el Dockerfile.
+          docker.build(env.APP_IMAGE, "--build-arg VERSION=${env.BUILD_ARG_VERSION} -f devops/Dockerfile .")
+        }
+      }
+    }
+
+    stage('CI - Push image to private registry (optional)') {
+      when {
+        expression { return params.ENABLE_REGISTRY_PUSH }
+      }
+      steps {
+        script {
+          def remoteTag = "${env.REGISTRY}/devops-training-2025-java-app:${env.BUILD_NUMBER}"
+          sh "docker tag ${env.APP_IMAGE} ${remoteTag}"
+
+          docker.withRegistry("http://${env.REGISTRY}", env.REGISTRY_CREDS_ID) {
+            def img = docker.image(remoteTag)
+            img.push()
+          }
+        }
+      }
+    }
+
+    stage('CD - Compose up + E2E + down') {
+      steps {
+        script {
+          // IMPORTANTE: Jenkins debe tener disponible `docker compose`.
+          //
+          // El docker-compose.yml del repo tambien contiene servicios de SonarQube; para esta practica solo arrancamos la app.
+          // Si mas adelante anades BBDD para la app, extiende el compose para incluirla.
+          composeUpTestDown(
+            up: 'docker compose up -d java_app',
+            test: "sleep 5 && curl -fsS ${env.APP_URL} || (docker compose logs && exit 1)",
+            down: 'docker compose down --volumes'
+          )
+        }
+      }
+    }
+
+    stage('CD - Build runtime image with cd.Dockerfile (optional)') {
+      when {
+        expression { return params.ENABLE_REGISTRY_PUSH }
+      }
+      steps {
+        script {
+          // The runtime image expects the jar to exist in ./target/.
+          // For this training, we assume CI already produced it in the same workspace.
+          docker.build(
+            "local/devops-training-2025-java-app-runtime:${env.BUILD_NUMBER}",
+            "--build-arg VERSION=1.0.4-SNAPSHOT -f devops/cd.Dockerfile ."
+          )
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'docker compose down --volumes || true'
+      cleanWs()
+    }
+  }
+}
