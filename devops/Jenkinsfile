@@ -5,7 +5,7 @@
   piezas (stages, agents, funciones Groovy, Docker build, docker compose, etc.)
   hasta construir un pipeline CI/CD completo.
 */
-
+ 
 pipeline {
   // `agent any` = el pipeline se ejecuta en cualquier nodo/agente disponible.
   agent any
