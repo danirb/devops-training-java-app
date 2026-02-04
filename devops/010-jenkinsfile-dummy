@@ -11,7 +11,7 @@ pipeline {
   agent any
 
   stages {
-    stage('Info') {
+    stage('Test') {
       /*
         `agent` dentro de un stage permite que SOLO ese stage se ejecute en un contexto concreto.
         En este caso, usamos Docker como capa de virtualizacion: los comandos se ejecutan dentro
@@ -23,9 +23,6 @@ pipeline {
         }
       }
       steps {
-        sh 'echo "Job: ${env.JOB_NAME}"'
-        sh 'echo "Build: ${env.BUILD_NUMBER}"'
-
         sh 'mvn -version'
         sh 'echo "Stage dummy. En la Practica 2 ejecutaras aqui los tests unitarios."'
       }
