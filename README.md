@@ -1,4 +1,4 @@
-# DevOps Training 2025 - App Java
+# DevOps Training - App Java
 
 Repositorio de la aplicación Java usada en el curso para practicar estrategias DevOps de CI/CD en proyectos compilados.
 
@@ -9,9 +9,9 @@ Repositorio de la aplicación Java usada en el curso para practicar estrategias 
 - Este README se actualizará de forma incremental durante el curso.
 
 ## Repositorios y ramas
-- App Python (base `feat/base`): https://github.com/contreras-adr/devops-training-2025-python-app/tree/feat/base
-- App Java (base `feat/base`): https://github.com/contreras-adr/devops-training-2025-java-app/tree/feat/base
-- IaC/DevOps (base `feat/base`): https://github.com/contreras-adr/devops-training-2025-iac-devops/tree/feat/base
+- App Python (base `feat/base`): https://github.com/contreras-adr/devops-training-python-app/tree/feat/base
+- App Java (base `feat/base`): https://github.com/contreras-adr/devops-training-java-app/tree/feat/base
+- IaC/DevOps (base `feat/base`): https://github.com/contreras-adr/devops-training-iac-devops/tree/feat/base
 
 ## Propósito del repositorio
 - App Java simple con empaquetado y ejecución en contenedor.
@@ -46,15 +46,15 @@ docker-compose up -d sonarqube
 docker-compose logs sonarqube
 
 # Crear el proyecto en SonarQube accediendo a "localhost:9009"
-# Nombre del proyecto: "devops-training-2025-java-app"
+# Nombre del proyecto: "devops-training-java-app"
 docker networks ls
 docker run \
     --rm -w /app \
-    -v "c:/Users/a.contreras/Documents/workspaces/training/scalian-devops-2024/2025/java-project-base:/app" \
+    -v "c:/__ABSOLUTE_SRC_PATH__:/app" \
     --network java-project-base_java-project-net \
     maven:3.8.6-openjdk-11-slim \
     mvn verify sonar:sonar \
-    -Dsonar.projectKey=devops-training-2025-java-app \
+    -Dsonar.projectKey=devops-training-java-app \
     -Dsonar.host.url=http://172.16.234.10:9000 \
     -Dsonar.login=sqp_01291ee195139732bf0509b512c5f8dd4ccc8bf9
 

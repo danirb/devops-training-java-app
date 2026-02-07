@@ -23,3 +23,7 @@
 hs_err_pid*
 replay_pid*
 target/*
+
+Jenkinsfile-solution
+gitlab-ci-solution.yml
+workflow-solution.yml
