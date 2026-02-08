@@ -1,0 +1,49 @@
+name: "CI/CD Template"
+
+on:
+  push:
+  pull_request:
+    branches: [develop, master]
+  workflow_dispatch:
+    inputs:
+      RUN_CD:
+        description: "Run CD stage"
+        required: false
+        type: boolean
+        default: false
+
+env:
+  # TODO: Ej.3 - Variables de entorno globales
+  # IMAGE_REPO: scalian_training-java-hello-world
+  # REGISTRY_HOST: local-registry:5000
+  # ARTIFACTORY_URL: http://artifactory:8081/artifactory
+  # COMPOSE_SERVICE: app
+
+jobs:
+  ci:
+    # TODO (E5): selecciona environment segun rama
+    # environment: ${{ github.ref_name == 'master' && 'PRO' || 'DEV' }}
+    runs-on: ubuntu-latest
+    steps:
+      # TODO: Ej.2 - checkout + info
+      - uses: actions/checkout@v4
+      - name: Info
+        run: |
+          echo "branch=${GITHUB_REF_NAME}"
+          echo "sha=${GITHUB_SHA}"
+
+      # TODO: Ej.6 - build CI image (devops/ci.Dockerfile)
+      # TODO: Ej.6 - lint/test dentro de la imagen (make lint / make test)
+      # TODO: Ej.7 - build imagen Docker de la app
+      # TODO: Opcional A - push a registry
+      # TODO: Opcional B - upload jar a Artifactory
+
+  cd:
+    needs: ci
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.RUN_CD == true || github.ref_name == 'develop' || github.ref_name == 'master' }}
+    # TODO (E5): selecciona environment segun rama
+    # environment: ${{ github.ref_name == 'master' && 'PRO' || 'DEV' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # TODO: Ej.9 - docker compose up -> logs -> down (always)
