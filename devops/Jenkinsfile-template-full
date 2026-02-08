@@ -44,7 +44,7 @@ pipeline {
     // APP_URL = 'http://localhost:8084/hello'
     // COMPOSE_FILE = 'docker-compose.yml'
     // COMPOSE_SERVICE = 'java_app'
-    // MAVEN_IMAGE = 'maven:3.8.6-openjdk-11-slim'
+    // CI_IMAGE = "java-ci-tools:${env.BUILD_NUMBER}"  // construida desde devops/ci.Dockerfile con make
 
     // [E5] TODO: define repositorio local de imagen.
     // IMAGE_REPO_LOCAL = 'scalian_training-java-hello-world'
@@ -83,12 +83,22 @@ pipeline {
       }
     }
 
+    stage('CI - Build tools image') {
+      steps {
+        script {
+          // [E3] TODO: construir imagen CI para ejecutar `make lint` y `make test`.
+          // Ejemplo:
+          // docker.build(env.CI_IMAGE, "-f devops/ci.Dockerfile .")
+        }
+      }
+    }
+
     stage('CI - Lint') {
       steps {
         script {
           // [E3][E4][E12] TODO: ejecutar lint en contenedor vía librería centralizada.
           // Ejemplo:
-          // devopsLib.runInDocker(env.MAVEN_IMAGE) {
+          // devopsLib.runInDocker(env.CI_IMAGE) {
           //   sh 'make lint'
           // }
         }
@@ -100,7 +110,7 @@ pipeline {
         script {
           // [E3][E4][E12] TODO: ejecutar test en contenedor vía librería centralizada.
           // Ejemplo:
-          // devopsLib.runInDocker(env.MAVEN_IMAGE) {
+          // devopsLib.runInDocker(env.CI_IMAGE) {
           //   sh 'make test'
           // }
         }
@@ -126,7 +136,7 @@ pipeline {
         script {
           // [E9] TODO: empaquetar JAR y subir a Artifactory.
           // Ejemplo:
-          // devopsLib.runInDocker(env.MAVEN_IMAGE) { sh 'mvn -q -DskipTests package' }
+          // devopsLib.runInDocker(env.CI_IMAGE) { sh 'mvn -q -DskipTests package' }
           // withCredentials([usernamePassword(...)]) {
           //   sh 'curl -u "${ART_USER}:${ART_PASS}" -T target/*.jar ...'
           // }

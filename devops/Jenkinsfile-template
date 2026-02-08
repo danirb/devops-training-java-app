@@ -50,6 +50,7 @@ pipeline {
     // TODO (E6.4): Define variables reutilizables:
     // - IMAGE_NAME (tag para docker build)
     // - APP_URL (endpoint para e2e)
+    // - CI_IMAGE_NAME (imagen construida desde devops/ci.Dockerfile para usar `make`)
     // - (opcional E7) REGISTRY y REGISTRY_CREDS_ID
     // - (opcional E10) VERSION_JAR para cd.Dockerfile
   }
@@ -65,13 +66,27 @@ pipeline {
     }
 
     // =========================
+    // Ejercicio 3 (preparación): construir imagen CI con make
+    // =========================
+    stage('CI - Build tools image') {
+      steps {
+        script {
+          // TODO (E3): Construye una imagen de CI desde devops/ci.Dockerfile.
+          // Ejemplo:
+          // env.CI_IMAGE_NAME = "java-ci-tools:${env.BUILD_NUMBER}"
+          // docker.build(env.CI_IMAGE_NAME, "-f devops/ci.Dockerfile .")
+        }
+      }
+    }
+
+    // =========================
     // Ejercicio 3 (lint/test con Makefile) + Ejercicio 4 (refactor con runInDocker)
     // =========================
     stage('CI - Lint') {
       steps {
         script {
-          // TODO (E3/E4): Ejecuta `make lint` dentro de maven:3.8.6-openjdk-11-slim.
-          // runInDocker('maven:3.8.6-openjdk-11-slim') { sh 'make lint' }
+          // TODO (E3/E4): Ejecuta `make lint` dentro de la imagen CI construida.
+          // runInDocker(env.CI_IMAGE_NAME) { sh 'make lint' }
         }
       }
     }
@@ -79,8 +94,8 @@ pipeline {
     stage('CI - Test') {
       steps {
         script {
-          // TODO (E3/E4): Ejecuta `make test` dentro de maven:3.8.6-openjdk-11-slim.
-          // runInDocker('maven:3.8.6-openjdk-11-slim') { sh 'make test' }
+          // TODO (E3/E4): Ejecuta `make test` dentro de la imagen CI construida.
+          // runInDocker(env.CI_IMAGE_NAME) { sh 'make test' }
         }
       }
     }
@@ -180,4 +195,3 @@ pipeline {
     // Post global del pipeline (opcional)
   }
 }
-

@@ -36,6 +36,33 @@ curl localhost:8084/hello
 docker stop java-app
 ```
 
+### Ejecutar lint y test manualmente con la imagen de CI
+Desde la raíz del repo:
+
+```bash
+# 1) Construir imagen de CI (incluye make + maven)
+docker build -t java-ci-tools:local -f devops/ci.Dockerfile .
+
+# 2) Lint (equivale a `make lint`)
+docker run --rm -v "$PWD":/app -w /app java-ci-tools:local sh -lc \
+  "make lint"
+
+# 3) Test (equivale a `make test`)
+docker run --rm -v "$PWD":/app -w /app java-ci-tools:local sh -lc \
+  "make test"
+```
+
+Si falla `lint` en Jenkins, en este proyecto Java no existe `make format`.
+La pauta es reproducir localmente el mismo check, corregir código y volver a subir:
+
+```bash
+# Reproducir el mismo check que ejecuta Jenkins
+docker run --rm -v "$PWD":/app -w /app java-ci-tools:local sh -lc \
+  "make lint"
+
+# Corregir el código, después git add / commit / push y relanzar Jenkins
+```
+
 ### Verificar proyecto SonarQube (opcional)
 ```bash
 # Evitar el siguiente error en Linux
