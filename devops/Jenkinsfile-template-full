@@ -1,0 +1,222 @@
+/*
+  Práctica 2 - Jenkinsfile template full (V2)
+
+  Esta plantilla NO contiene la solución final copiable.
+  Es una versión 2 que incluye ejercicios opcionales y se considera
+  una refactorización de la versión 1 una vez esté operativa.
+
+  Objetivo:
+  - Guiar al alumno para completar el pipeline por bloques.
+  - Mantener referencias a ejercicios del enunciado.
+*/
+
+// [E12] TODO: descomenta la importación cuando configures la librería en Jenkins
+// @Library('iac-devops-lib') _
+
+pipeline {
+  agent any
+
+  options {
+    // [E1] TODO: habilita prácticas recomendadas.
+    // timestamps()
+    // disableConcurrentBuilds()
+  }
+
+  parameters {
+    // [E6.3] TODO: añade parámetro para habilitar CD.
+    // booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD')
+
+    // [E7] TODO: añade parámetro para push al registry.
+    // booleanParam(name: 'ENABLE_REGISTRY_PUSH', defaultValue: false, description: 'Publicar imagen en local-registry')
+
+    // [E7/E12] TODO: añade parámetro para forzar uso de imagen del registry en CD.
+    // booleanParam(name: 'USE_REGISTRY_IMAGE_IN_CD', defaultValue: true, description: 'Usar imagen del registry en CD')
+
+    // [E9] TODO: añade parámetro para subida opcional a Artifactory.
+    // booleanParam(name: 'ENABLE_ARTIFACTORY_UPLOAD', defaultValue: false, description: 'Subir JAR a Artifactory')
+
+    // [E11] TODO: añade parámetro para construir runtime image con cd.Dockerfile.
+    // booleanParam(name: 'ENABLE_RUNTIME_IMAGE_BUILD', defaultValue: false, description: 'Construir runtime image en CD')
+  }
+
+  environment {
+    // [E6.4] TODO: define variables compartidas del pipeline.
+    // APP_URL = 'http://localhost:8084/hello'
+    // COMPOSE_FILE = 'docker-compose.yml'
+    // COMPOSE_SERVICE = 'java_app'
+    // CI_IMAGE = "java-ci-tools:${env.BUILD_NUMBER}"  // construida desde devops/ci.Dockerfile con make
+
+    // [E5] TODO: define repositorio local de imagen.
+    // IMAGE_REPO_LOCAL = 'scalian_training-java-hello-world'
+
+    // [E7] TODO: define host/repo de registry y credencial Jenkins.
+    // REGISTRY_HOST = 'local-registry:5000'
+    // REGISTRY_REPO = 'scalian_training-java-hello-world'
+    // REGISTRY_CREDS_ID = 'local-registry-creds'
+
+    // [E9] TODO: define Artifactory y credenciales Jenkins.
+    // ARTIFACTORY_URL = 'http://artifactory:8081/artifactory'
+    // ARTIFACTORY_REPO = 'libs-release-local'
+    // ARTIFACTORY_CREDS_ID = 'artifactory-creds'
+  }
+
+  stages {
+    stage('Info') {
+      steps {
+        // [E1] TODO: imprime metadatos de ejecución.
+        // echo "Job: ${env.JOB_NAME}"
+        // echo "Build: ${env.BUILD_NUMBER}"
+        // echo "Branch: ${env.BRANCH_NAME}"
+      }
+    }
+
+    stage('Init - Versionado') {
+      steps {
+        script {
+          // [E12] TODO: leer VERSION y construir tags de imagen local/registry.
+          // Ejemplo:
+          // env.IMAGE_VERSION = devopsLib.readVersion('VERSION')
+          // env.VERSION_JAR = "${env.IMAGE_VERSION}-SNAPSHOT"
+          // env.IMAGE_LOCAL = "${env.IMAGE_REPO_LOCAL}:${env.IMAGE_VERSION}"
+          // env.IMAGE_REGISTRY = "${env.REGISTRY_HOST}/${env.REGISTRY_REPO}:${env.IMAGE_VERSION}"
+        }
+      }
+    }
+
+    stage('CI - Build tools image') {
+      steps {
+        script {
+          // [E3] TODO: construir imagen CI para ejecutar `make lint` y `make test`.
+          // Ejemplo:
+          // docker.build(env.CI_IMAGE, "-f devops/ci.Dockerfile .")
+        }
+      }
+    }
+
+    stage('CI - Lint') {
+      steps {
+        script {
+          // [E3][E4][E12] TODO: ejecutar lint en contenedor vía librería centralizada.
+          // Ejemplo:
+          // devopsLib.runInDocker(env.CI_IMAGE) {
+          //   sh 'make lint'
+          // }
+        }
+      }
+    }
+
+    stage('CI - Test') {
+      steps {
+        script {
+          // [E3][E4][E12] TODO: ejecutar test en contenedor vía librería centralizada.
+          // Ejemplo:
+          // devopsLib.runInDocker(env.CI_IMAGE) {
+          //   sh 'make test'
+          // }
+        }
+      }
+    }
+
+    stage('CI - Build image') {
+      steps {
+        script {
+          // [E5] TODO: construir imagen Docker.
+          // Ejemplo:
+          // docker.build(env.IMAGE_LOCAL, "--build-arg VERSION=${env.VERSION_JAR} -f devops/Dockerfile .")
+        }
+      }
+    }
+
+    stage('CI - Upload jar (opcional)') {
+      when {
+        // [E9] TODO: ejecuta solo si se habilita el parámetro.
+        // expression { return params.ENABLE_ARTIFACTORY_UPLOAD }
+      }
+      steps {
+        script {
+          // [E9] TODO: empaquetar JAR y subir a Artifactory.
+          // Ejemplo:
+          // devopsLib.runInDocker(env.CI_IMAGE) { sh 'mvn -q -DskipTests package' }
+          // withCredentials([usernamePassword(...)]) {
+          //   sh 'curl -u "${ART_USER}:${ART_PASS}" -T target/*.jar ...'
+          // }
+        }
+      }
+    }
+
+    stage('CI - Push image (opcional)') {
+      when {
+        // [E7] TODO: ejecuta solo si se habilita el parámetro.
+        // expression { return params.ENABLE_REGISTRY_PUSH }
+      }
+      steps {
+        script {
+          // [E7] TODO: login + tag + push al registry.
+          // Ejemplo:
+          // withCredentials([usernamePassword(...)]) {
+          //   sh '''
+          //     echo "$REG_PASS" | docker login ...
+          //     docker tag "$IMAGE_LOCAL" "$IMAGE_REGISTRY"
+          //     docker push "$IMAGE_REGISTRY"
+          //   '''
+          // }
+        }
+      }
+    }
+
+    stage('CD') {
+      when {
+        // [E6.1][E6.3] TODO: ejecutar CD por rama o parámetro.
+        // - Si RUN_CD=true, ejecutar en cualquier rama.
+        // - Si RUN_CD=false, ejecutar solo en develop/master.
+        // Ejemplo:
+        // anyOf {
+        //   expression { return params.RUN_CD }
+        //   branch 'develop'
+        //   branch 'master'
+        // }
+      }
+      steps {
+        script {
+          // [E6.2] TODO: calcular DEPLOY_ENV y COMPOSE_PROJECT.
+          // env.DEPLOY_ENV = (env.BRANCH_NAME == 'master') ? 'PRO' : 'DEV'
+          // env.COMPOSE_PROJECT = env.DEPLOY_ENV.toLowerCase()
+
+          // [E7/E12] TODO: elegir imagen para CD (registry o local).
+          // String cdImage = params.USE_REGISTRY_IMAGE_IN_CD ? env.IMAGE_REGISTRY : env.IMAGE_LOCAL
+
+          // [E7] TODO: si usas imagen de registry, hacer login + pull.
+
+          // [E12] TODO: actualizar la imagen del servicio en docker-compose.yml.
+          // devopsLib.setComposeServiceImage(...)
+
+          // [E6][E6.5][E12] TODO: ejecutar up -> test -> down con cleanup garantizado.
+          // devopsLib.composeUpTestDown(...)
+        }
+      }
+      post {
+        // [E6.5] TODO: añade limpieza y reporting.
+        // always { sh "docker rmi ${env.IMAGE_LOCAL} || true" }
+        // success { echo 'SUCCESS' }
+        // failure { echo 'FAILURE'; sh "docker compose -p ${env.COMPOSE_PROJECT} logs || true" }
+      }
+    }
+
+    stage('CD - Build runtime image (opcional)') {
+      when {
+        // [E11] TODO: condiciona ejecución por parámetros.
+        // allOf {
+        //   expression { return params.RUN_CD }
+        //   expression { return params.ENABLE_RUNTIME_IMAGE_BUILD }
+        // }
+      }
+      steps {
+        script {
+          // [E11] TODO: construir runtime image con cd.Dockerfile.
+          // Ejemplo:
+          // sh "docker build -f devops/cd.Dockerfile --build-arg VERSION=${env.VERSION_JAR} ."
+        }
+      }
+    }
+  }
+}
