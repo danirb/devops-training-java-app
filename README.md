@@ -32,7 +32,7 @@ Habrá cinco casos prácticos, cada uno con una única rama de solución `traini
 docker build -t scalian_training-java-hello-world:0.0.2 --build-arg VERSION=0.0.2-SNAPSHOT -f devops/Dockerfile .
 
 docker run -d --rm -p 8085:8080 --name java-app scalian_training-java-hello-world:0.0.2
-curl localhost:8084/hello
+docker logs -f java-app
 docker stop java-app
 ```
 

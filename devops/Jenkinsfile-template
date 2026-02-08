@@ -156,7 +156,7 @@ pipeline {
       steps {
         script {
           // TODO (E6.2): Define DEPLOY_ENV (develop=DEV, master=PRO) y muestra logs.
-          // TODO (E6): docker compose up -> e2e curl -> docker compose down --volumes
+          // TODO (E6): docker compose up -> logs -> docker compose down --volumes
           // Recomendado: encapsular con composeUpTestDown(...) (E9).
         }
       }

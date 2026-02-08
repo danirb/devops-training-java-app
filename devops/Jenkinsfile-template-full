@@ -190,7 +190,7 @@ pipeline {
           // [E12] TODO: actualizar la imagen del servicio en docker-compose.yml.
           // devopsLib.setComposeServiceImage(...)
 
-          // [E6][E6.5][E12] TODO: ejecutar up -> test -> down con cleanup garantizado.
+          // [E6][E6.5][E12] TODO: ejecutar up -> logs -> down con cleanup garantizado.
           // devopsLib.composeUpTestDown(...)
         }
       }
