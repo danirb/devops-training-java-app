@@ -56,11 +56,16 @@ Si falla `lint` en Jenkins, en este proyecto Java no existe `make format`.
 La pauta es reproducir localmente el mismo check, corregir código y volver a subir:
 
 ```bash
-# Reproducir el mismo check que ejecuta Jenkins
+# 1) Reproducir el mismo check que ejecuta Jenkins
 docker run --rm -v "$PWD":/app -w /app java-ci-tools:local sh -lc \
   "make lint"
 
-# Corregir el código, después git add / commit / push y relanzar Jenkins
+# 2) Corregir el código y subir cambios en tu rama de trabajo
+git add .
+git commit -m "fix: corregir errores de lint en java"
+git push
+
+# 3) Relanzar Jenkins
 ```
 
 ### Verificar proyecto SonarQube (opcional)
