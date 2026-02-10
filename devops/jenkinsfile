@@ -31,6 +31,8 @@ pipeline {
       }
       steps {
         sh '''
+            apt-get update
+            apt-get install -y make
             make lint
         '''
       }
