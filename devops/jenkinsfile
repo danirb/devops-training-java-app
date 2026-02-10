@@ -1,0 +1,51 @@
+#!groovy
+
+pipeline {
+  agent any
+  stages {
+    stage('Info') {
+      steps {
+        sh "echo Job: ${env.JOB_NAME}"
+        sh "echo Build: ${env.BUILD_NUMBER}"
+      }
+    }
+    stage('Install') {
+      agent {
+        docker {
+         image 'maven:3.8.6-openjdk-11-slim'
+        }
+      }
+      steps {
+        sh '''
+            mvn install
+            apt-get update
+            apt-get install -y make
+        '''
+      }
+    }
+    stage('CI - Lint') {
+      agent {
+        docker {
+         image 'maven:3.8.6-openjdk-11-slim'
+        }
+      }
+      steps {
+        sh '''
+            make lint
+        '''
+      }
+    }
+    stage('CI - Test') {
+      agent {
+        docker {
+         image 'maven:3.8.6-openjdk-11-slim'
+        }
+      }
+      steps {
+        sh 'mvn test'
+      }
+    }
+  }
+
+
+}
