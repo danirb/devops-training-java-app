@@ -1,7 +1,17 @@
 #!groovy
 
+def runInDocker(String image, Closure body) {
+  docker.image(image).inside {
+    body()
+  }
+}
+
 pipeline {
   agent any
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
   stages {
     stage('Info') {
       steps {
@@ -9,45 +19,28 @@ pipeline {
         sh "echo Build: ${env.BUILD_NUMBER}"
       }
     }
-    stage('Install') {
-      agent {
-        docker {
-         image 'maven:3.8.6-openjdk-11-slim'
-        }
-      }
+    stage('CI - Build tools image') {
       steps {
-        sh '''
-            mvn install
-            apt-get update
-            apt-get install -y make
-        '''
+        script {
+          env.CI_IMAGE_NAME = "java-ci-tools:${env.BUILD_NUMBER}"
+          docker.build(env.CI_IMAGE_NAME, "-f devops/ci.Dockerfile .")
+        }
       }
     }
+
     stage('CI - Lint') {
-      agent {
-        docker {
-         image 'maven:3.8.6-openjdk-11-slim'
-        }
-      }
       steps {
-        sh '''
-            apt-get update
-            apt-get install -y make
-            make lint
-        '''
+        script {
+          runInDocker(env.CI_IMAGE_NAME) { sh 'make lint' }
+        }
       }
     }
     stage('CI - Test') {
-      agent {
-        docker {
-         image 'maven:3.8.6-openjdk-11-slim'
-        }
-      }
       steps {
-        sh 'mvn test'
+        script {
+          runInDocker(env.CI_IMAGE_NAME) { sh 'make test' }
+        }
       }
     }
   }
-
-
 }
