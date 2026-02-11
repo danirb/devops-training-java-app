@@ -23,6 +23,7 @@ pipeline {
       steps {
         script {
           env.CI_IMAGE_NAME = "java-ci-tools:${env.BUILD_NUMBER}"
+          sh "echo CI_IMAGE_NAME: ${env.CI_IMAGE_NAME}"
           docker.build(env.CI_IMAGE_NAME, "-f devops/ci.Dockerfile .")
         }
       }
