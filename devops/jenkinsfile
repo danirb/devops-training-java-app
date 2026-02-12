@@ -8,6 +8,9 @@ def runInDocker(String image, Closure body) {
 
 pipeline {
   agent any
+    params {
+        booleanParam(name: 'RUN_CD', defaultValue: false, description: 'Ejecutar CD (solo develop/master)')
+    }
   options {
     timestamps()
     disableConcurrentBuilds()
@@ -44,7 +47,16 @@ pipeline {
       }
     }
     stage('CD') {
+
+        when {
+            anyOf {
+                expression { return params.RUN_CD }
+                branch 'develop'
+                branch 'master'
+            }
+        }
         steps {
+            echo "CD habilitado: RUN_CD=${params.RUN_CD}, branch=${env.BRANCH_NAME}"
             script {
                 sh 'docker compose up -d'
                 sh 'sleep 5'
